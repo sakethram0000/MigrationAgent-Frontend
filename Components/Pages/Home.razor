@@ -1,0 +1,1347 @@
+@page "/"
+@rendermode InteractiveServer
+@inject IJSRuntime JS
+@inject IHttpClientFactory HttpClientFactory
+@inject HttpClient Http
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Collections.Generic
+@using System.Linq
+@using System.Net.Http.Json
+@using System.Text
+@using System.Text.Json
+<PageTitle>.NET Migration Agent</PageTitle>
+
+<!-- HEADER -->
+<div class="ma-hero">
+    <div class="ma-hero-content">
+        <div class="ma-hero-left">
+            <div class="ma-hero-brand">
+                <div class="ma-hero-logo">🔄</div>
+                <div>
+                    <div class="ma-hero-title">.NET Migration Agent</div>
+                    <div class="ma-hero-subtitle">
+                        Intelligently migrate legacy .NET C# codebases to
+                        <span class="ma-hero-highlight">next-generation .NET</span>
+                        — powered by Microsoft AutoGen
+                    </div>
+                </div>
+            </div>
+            <div class="ma-hero-pills">
+                <span class="hero-pill"><span class="pill-dot blue"></span>AutoGen</span>
+                <span class="hero-pill"><span class="pill-dot purple"></span>CodeLlama</span>
+                <span class="hero-pill"><span class="pill-dot green"></span>.NET 8+</span>
+                <span class="hero-pill"><span class="pill-dot orange"></span>AI Powered</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="ma-container">
+
+    <!-- SECTION 1: VERSION SELECTOR -->
+    <div class="ma-card">
+        <div class="ma-card-header">
+            <div class="ma-card-title"><span>🎯</span> Migration Path</div>
+        </div>
+        <div class="ma-card-body">
+            <div class="version-row">
+                <div class="version-group">
+                    <label>From Version</label>
+                    <select class="version-select" @bind="fromVersion" @bind:after="CheckCompat">
+                        <option>.NET Framework 4.5</option>
+                        <option>.NET Framework 4.6</option>
+                        <option>.NET Framework 4.7</option>
+                        <option selected>.NET Framework 4.8</option>
+                        <option>.NET Core 3.1</option>
+                        <option>.NET 5</option>
+                        <option>.NET 6</option>
+                        <option>.NET 7</option>
+                    </select>
+                </div>
+                <div class="version-arrow">→</div>
+                <div class="version-group">
+                    <label>To Version</label>
+                    <select class="version-select" @bind="toVersion" @bind:after="CheckCompat">
+                        <option>.NET 6</option>
+                        <option>.NET 7</option>
+                        <option selected>.NET 8</option>
+                        <option>.NET 9</option>
+                    </select>
+                </div>
+            </div>
+
+            @if (showCompat)
+            {
+                <div class="compat-matrix @compatClass">
+                    <div class="compat-left">
+                        <div class="compat-status-icon">@compatIcon</div>
+                        <div class="compat-status-title">@compatTitle</div>
+                        <div class="compat-status-msg">@compatMsg</div>
+                    </div>
+                    <div class="compat-right">
+                        <div class="compat-metric">
+                            <span class="cm-label">Effort</span>
+                            <div class="cm-bar"><div class="cm-fill effort" style="width:@effortPct%"></div></div>
+                            <span class="cm-val">@effortLabel</span>
+                        </div>
+                        <div class="compat-metric">
+                            <span class="cm-label">Risk</span>
+                            <div class="cm-bar"><div class="cm-fill risk" style="width:@riskPct%"></div></div>
+                            <span class="cm-val">@riskLabel</span>
+                        </div>
+                        <div class="compat-metric">
+                            <span class="cm-label">Gap</span>
+                            <div class="cm-bar"><div class="cm-fill gap" style="width:@gapPct%"></div></div>
+                            <span class="cm-val">@versionGap versions</span>
+                        </div>
+                    </div>
+                </div>
+                @if (!string.IsNullOrEmpty(recommendedPath))
+                {
+                    <div class="compat-recommendation">
+                        <span>💡</span>
+                        <span>@recommendedPath</span>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+    <!-- SECTION 2: UPLOAD + CONTROLS -->
+    <div class="two-col">
+        <div class="ma-card">
+            <div class="ma-card-header">
+                <div class="ma-card-title"><span>📁</span> Upload Source</div>
+            </div>
+            <div class="ma-card-body">
+                <!-- TAB SWITCHER -->
+                <div class="upload-tabs">
+                    <button class="upload-tab @(uploadTab=="local"?"active":"")" @onclick="SetTabLocal">📂 Local File</button>
+                    <button class="upload-tab @(uploadTab=="github"?"active":"")" @onclick="SetTabGithub">🔗 GitHub URL</button>
+                </div>
+
+                @if (uploadTab == "local")
+                {
+                <div class="upload-zone @(isDrag?"drag":"")"
+                     @ondragover:preventDefault="true"
+                     @ondragover="()=>isDrag=true"
+                     @ondragleave="()=>isDrag=false"
+                     @ondrop="HandleDrop">
+                    <div class="upload-icon">📦</div>
+                    <h3>Drop files or folders here</h3>
+                    <p>Supports .sln, .csproj, .cs, .zip files</p>
+                    <InputFile id="fileInput" OnChange="HandleFileSelected" multiple style="display:none" />
+                    <button class="browse-btn" @onclick="OpenFilePicker">Browse Files</button>
+                </div>
+                @if (files.Count > 0)
+                {
+                    <div class="file-list">
+                        @foreach (var f in files)
+                        {
+                            <div class="file-item">
+                                <span>@GetFileIcon(f.Name)</span>
+                                <span class="fn">@f.Name</span>
+                                <span class="fs">@FormatSize(f.Size)</span>
+                                <button class="file-remove" @onclick="()=>RemoveFile(f)">✕</button>
+                            </div>
+                        }
+                    </div>
+                    <div style="margin-top:10px;font-size:12px;color:var(--text2);">
+                        @files.Count file(s) selected
+                    </div>
+                }
+                }
+                else
+                {
+                <div class="github-input-area">
+                    <div class="github-input-row">
+                        <span class="github-icon">🔗</span>
+                        <input class="github-input" type="text" placeholder="https://github.com/owner/repo"
+                               @bind="githubUrl" @bind:event="oninput" />
+                    </div>
+                    <button class="browse-btn" style="width:100%;margin-top:10px;" @onclick="FetchGithubRepo"
+                            disabled="@(isFetchingGithub || string.IsNullOrWhiteSpace(githubUrl))">
+                        @if (isFetchingGithub)
+                        {
+                            <span>⏳ Fetching...</span>
+                        }
+                        else
+                        {
+                            <span>⬇️ Fetch Repository</span>
+                        }
+                    </button>
+                    @if (!string.IsNullOrEmpty(githubFetchStatus))
+                    {
+                        <div class="github-status @(githubFetchSuccess?"success":"error")">
+                            @(githubFetchSuccess ? "✅" : "❌") @githubFetchStatus
+                        </div>
+                    }
+                </div>
+                }
+            </div>
+        </div>
+
+        <div class="ma-card">
+            <div class="ma-card-header">
+                <div class="ma-card-title"><span>⚙️</span> Migration Controls</div>
+            </div>
+            <div class="ma-card-body">
+                <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Migration Scope</div>
+                <div class="scope-grid">
+                    @foreach (var s in scopes)
+                    {
+                        <div class="scope-card @(s.Value?"on":"")" @onclick="()=>ToggleScope(s.Key)">
+                            <div class="si">@scopeIcons[s.Key]</div>
+                            <div class="sl">@s.Key</div>
+                        </div>
+                    }
+                    <div class="scope-card @(isFullMigration?"on full":"")" @onclick="ToggleFullMigration"
+                         style="grid-column:span 3;">
+                        <div class="si">🚀</div>
+                        <div class="sl">Full Migration</div>
+                    </div>
+                </div>
+
+                <div class="adv-toggle" @onclick="()=>showAdvanced=!showAdvanced">
+                    <span>⚙️ Advanced Settings</span>
+                    <span>@(showAdvanced?"▲":"▼")</span>
+                </div>
+
+                @if (showAdvanced)
+                {
+                    <div class="adv-body">
+                        <div class="ctrl-row">
+                            <label>Language Target</label>
+                            <select class="ctrl-select" @bind="langTarget">
+                                <option>C# 10</option>
+                                <option>C# 11</option>
+                                <option selected>C# 12</option>
+                            </select>
+                        </div>
+                        <div class="ctrl-row">
+                            <label>Output Format</label>
+                            <select class="ctrl-select" @bind="outputFmt">
+                                <option selected>Web API + Services</option>
+                                <option>Minimal API</option>
+                                <option>MVC</option>
+                                <option>Blazor</option>
+                            </select>
+                        </div>
+                        <div class="ctrl-row">
+                            <label>Execution Style</label>
+                            <select class="ctrl-select" @bind="execStyle">
+                                <option selected>Autonomous with review gates</option>
+                                <option>Fully autonomous</option>
+                                <option>Manual approval each step</option>
+                            </select>
+                        </div>
+                    </div>
+                }
+
+                <button class="run-btn" @onclick="RunMigration" disabled="@(files.Count==0 || isLoading)">
+                    <span>▶</span><span>Run Migration</span>
+                </button>
+                @if (!string.IsNullOrEmpty(statusMessage))
+                {
+                    <div style="margin-top:8px;font-size:13px;color:var(--text2);">@statusMessage</div>
+                }
+                @if (files.Count == 0)
+                {
+                    <div style="margin-top:8px;font-size:12px;color:var(--text2);text-align:center;">
+                        Please upload files to enable migration
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- BACKEND NOT CONNECTED NOTICE -->
+    @if (showNotConnected)
+    {
+        <div class="ma-card" style="border-color:rgba(255,140,0,0.4);animation:fadeIn 0.4s ease">
+            <div class="ma-card-body" style="display:flex;align-items:center;gap:14px;padding:18px 20px;">
+                <span style="font-size:28px;">🔌</span>
+                <div>
+                    <div style="font-weight:700;font-size:14px;color:var(--orange);">Backend Not Connected</div>
+                    <div style="font-size:13px;color:var(--text2);margin-top:4px;">
+                        Agent logic is not built yet. Connect the Python AutoGen backend to start real migrations.
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- SECTION 3: EXECUTION PROGRESS -->
+    <div class="ma-card">
+        <div class="ma-card-header">
+            <div class="ma-card-title"><span>🔄</span> Execution Progress</div>
+                <span class="section-status">@executionStatusText</span>
+        </div>
+        <div class="ma-card-body">
+            <div class="stepper">
+                <div class="stepper-progress" style="width:@GetStepperProgressWidth()"></div>
+                @foreach (var s in steps)
+                {
+                    <div class="step-item">
+                        <div class="step-circle @stepStates[s.N - 1]">
+                            <span>@(stepStates[s.N-1]=="completed" ? "✓" : s.N.ToString())</span>
+                        </div>
+                        <div class="step-label @stepStates[s.N - 1]">@s.Name</div>
+                        <div class="step-sub">@stepSubtitles[s.N - 1]</div>
+                    </div>
+                }
+            </div>
+            <div class="terminal">
+                @if (string.IsNullOrEmpty(terminalOutput))
+                {
+                    <div class="empty-terminal">
+                        <span style="color:var(--text2);font-size:13px;">
+                            Terminal output will appear here when migration runs...
+                        </span>
+                        <span class="t-cursor"></span>
+                    </div>
+                }
+                else
+                {
+                    <pre>@terminalOutput</pre>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION 4: FINDINGS + ACTIONS -->
+    <div class="two-col">
+        <div class="ma-card">
+            <div class="ma-card-header">
+                <div class="ma-card-title"><span>🔍</span> Key Findings</div>
+                <span class="section-status">Pending analysis</span>
+            </div>
+            <div class="ma-card-body">
+                <div class="findings-summary">
+                    <div class="f-badge critical">
+                        <div class="fc">@findingsCritical.Count</div>
+                        <div class="fl">Critical</div>
+                    </div>
+                    <div class="f-badge warning">
+                        <div class="fc">@findingsWarnings.Count</div>
+                        <div class="fl">Warnings</div>
+                    </div>
+                    <div class="f-badge info">
+                        <div class="fc">@findingsInfo.Count</div>
+                        <div class="fl">Info</div>
+                    </div>
+                </div>
+                @if (findingsCritical.Count == 0 && findingsWarnings.Count == 0 && findingsInfo.Count == 0)
+                {
+                    <div class="empty-state">
+                        <span>🔍</span>
+                        <p>Findings will appear here after the agent analyzes your code</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="findings-list">
+                        @foreach (var item in findingsCritical)
+                        {
+                            <div class="finding-item critical">⚠️ @item</div>
+                        }
+                        @foreach (var item in findingsWarnings)
+                        {
+                            <div class="finding-item warning">⚠ @item</div>
+                        }
+                        @foreach (var item in findingsInfo)
+                        {
+                            <div class="finding-item info">ℹ️ @item</div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="ma-card">
+            <div class="ma-card-header">
+                <div class="ma-card-title"><span>🤖</span> Autonomous Actions</div>
+                    <span class="section-status">@(currentStep == 0 ? "Pending" : stepSubtitles[currentStep - 1])</span>
+            </div>
+            <div class="ma-card-body">
+                <div class="action-list">
+                    @for (int i = 0; i < autonomousActions.Count; i++)
+                    {
+                        var state = actionStates[i];
+                        <div class="a-item @state">
+                            <span class="a-icon">@GetActionIcon(i)</span>
+                            <span class="a-text">@autonomousActions[i]</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION 5: GENERATED OUTPUTS -->
+    <div class="ma-card">
+        <div class="ma-card-header">
+            <div class="ma-card-title"><span>📦</span> Generated Outputs</div>
+            <span class="section-status">@(outputsReady.Values.Any(v => v) ? "Ready" : "Available after migration completes")</span>
+        </div>
+        <div class="ma-card-body">
+            <div class="outputs-grid">
+                <div class="out-card @(outputsReady["Migration Summary"] ? string.Empty : "disabled")" @onclick="OpenMigrationSummary">
+                    <div class="out-icon">📄</div>
+                    <div class="out-title">Migration Summary</div>
+                    <div class="out-desc">Architecture, scope, blockers</div>
+                </div>
+                <div class="out-card @(outputsReady["Converted Code"] ? string.Empty : "disabled")" @onclick="OpenConvertedCode">
+                    <div class="out-icon">💻</div>
+                    <div class="out-title">Converted Code</div>
+                    <div class="out-desc">.NET 8 Web API + Services</div>
+                </div>
+                <div class="out-card @(outputsReady["Dependency Map"] ? string.Empty : "disabled")" @onclick="OpenDependencyMap">
+                    <div class="out-icon">📦</div>
+                    <div class="out-title">Dependency Map</div>
+                    <div class="out-desc">Legacy to modern packages</div>
+                </div>
+                <div class="out-card @(outputsReady["Manual Fix List"] ? string.Empty : "disabled")" @onclick="OpenManualFix">
+                    <div class="out-icon">⚠️</div>
+                    <div class="out-title">Manual Fix List</div>
+                    <div class="out-desc">Developer intervention needed</div>
+                </div>
+                <div class="out-card @(outputsReady["Validation Report"] ? string.Empty : "disabled")" @onclick="OpenValidationReport">
+                    <div class="out-icon">✅</div>
+                    <div class="out-title">Validation Report</div>
+                    <div class="out-desc">Build issues, syntax gaps</div>
+                </div>
+                <div class="out-card @(outputsReady["Change Log"] ? string.Empty : "disabled")" @onclick="OpenChangeLog">
+                    <div class="out-icon">📝</div>
+                    <div class="out-title">Change Log</div>
+                    <div class="out-desc">Full transformation log</div>
+                </div>
+            </div>
+            @if (migratedCount > 0)
+            {
+                <div style="margin-top:20px;text-align:center;">
+                    <button class="run-btn" @onclick="DownloadMigratedProject" style="background:linear-gradient(135deg, #28a745, #20c997);">
+                        <span>📥</span><span>Download Migrated Project</span>
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- SECTION 6: REVIEW GATE -->
+    <div class="review-gate @(reviewGateReady ? "" : "disabled-gate")">
+        <div class="rg-header" style="opacity:@(reviewGateReady ? "1" : "0.6");">
+            🔍 Review Gate — @reviewGateMessage
+        </div>
+        <div class="rg-body">
+            <div class="rg-checks">
+                <div class="rg-check" style="opacity:0.5;">⏳ Approve transformed controllers and service layer</div>
+                <div class="rg-check" style="opacity:0.5;">⏳ Validate dependency replacements before final packaging</div>
+                <div class="rg-check" style="opacity:0.5;">⏳ Review unresolved issues requiring manual code fixes</div>
+            </div>
+            <div class="rg-actions">
+                <button class="approve-btn" disabled="@(!reviewGateReady)" style="opacity:@(reviewGateReady ? "1" : "0.4");cursor:@(reviewGateReady ? "pointer" : "not-allowed");">✅ Approve</button>
+                <button class="changes-btn" disabled="@(!reviewGateReady)" style="opacity:@(reviewGateReady ? "1" : "0.4");cursor:@(reviewGateReady ? "pointer" : "not-allowed");">🔄 Request Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DETAIL VIEW OVERLAY -->
+    @if (!string.IsNullOrEmpty(currentDetail))
+    {
+        <div class="detail-overlay" style="animation:fadeIn 0.3s ease">
+            <div class="detail-header">
+                <button class="back-btn" @onclick="CloseDetail">← Back</button>
+                <div class="detail-title">@GetDetailTitle()</div>
+            </div>
+            <div class="detail-body">
+                @if (currentDetail == "migration-summary")
+                {
+                    <div class="detail-section">
+                        <div class="detail-meta-row">
+                            <span class="detail-badge blue">From: @fromVersion</span>
+                            <span class="detail-badge green">To: @toVersion</span>
+                            <span class="detail-badge purple">@migratedCount files migrated</span>
+                        </div>
+                        <div class="detail-content">@analysisSummary</div>
+                    </div>
+                }
+                else if (currentDetail == "converted-code")
+                {
+                    @foreach (var f in migratedFiles)
+                    {
+                        <div class="detail-file-block">
+                            <div class="detail-file-name">📄 @f.Key</div>
+                            <pre class="detail-code">@f.Value</pre>
+                        </div>
+                    }
+                }
+                else if (currentDetail == "dependency-map")
+                {
+                    <div class="detail-section">
+                        <p style="color:var(--text2);margin-bottom:16px;">Packages detected and updated during migration:</p>
+                        @foreach (var dep in dependencyMap)
+                        {
+                            <div class="dep-row">
+                                <span class="dep-old">📦 @dep.Key</span>
+                                <span class="dep-arrow">→</span>
+                                <span class="dep-new">✅ @dep.Value</span>
+                            </div>
+                        }
+                        @if (!dependencyMap.Any())
+                        {
+                            <div class="empty-state"><span>📦</span><p>No dependency changes detected.</p></div>
+                        }
+                    </div>
+                }
+                else if (currentDetail == "manual-fix")
+                {
+                    <div class="detail-section">
+                        @if (findingsCritical.Any())
+                        {
+                            <div style="margin-bottom:12px;font-weight:700;color:var(--red);">Critical Issues</div>
+                            @foreach (var item in findingsCritical)
+                            {
+                                <div class="detail-issue critical">❌ @item</div>
+                            }
+                        }
+                        @if (findingsWarnings.Any())
+                        {
+                            <div style="margin:12px 0;font-weight:700;color:var(--orange);">Warnings</div>
+                            @foreach (var item in findingsWarnings)
+                            {
+                                <div class="detail-issue warning">⚠️ @item</div>
+                            }
+                        }
+                        @if (!findingsCritical.Any() && !findingsWarnings.Any())
+                        {
+                            <div class="empty-state"><span>✅</span><p>No manual fixes required!</p></div>
+                        }
+                    </div>
+                }
+                else if (currentDetail == "validation-report")
+                {
+                    <div class="detail-section">
+                        <div class="detail-badge @(validationSummary.Contains("succeeded") ? "green" : "red")" style="margin-bottom:16px;display:inline-block;">
+                            @(validationSummary.Contains("succeeded") ? "✅ Build Passed" : "❌ Build Failed")
+                        </div>
+                        <pre class="detail-code">@validationOutput</pre>
+                    </div>
+                }
+                else if (currentDetail == "change-log")
+                {
+                    <div class="detail-section">
+                        <p style="color:var(--text2);margin-bottom:16px;">@reportSummary</p>
+                        @foreach (var f in migratedFiles)
+                        {
+                            <div class="dep-row">
+                                <span>📄 @f.Key</span>
+                                <span class="dep-new">✅ Migrated to .NET 8</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+</div>
+
+@code {
+    string fromVersion = ".NET Framework 4.8";
+    string toVersion = ".NET 8";
+    bool showCompat = true;
+    string compatClass = "warning";
+    string compatIcon = "⚠️";
+    string compatTitle = "Compatible with Breaking Changes";
+    string compatMsg = "Migration path available. Review breaking changes before proceeding.";
+    int versionGap = 2;
+    int effortPct = 60;
+    int riskPct = 40;
+    int gapPct = 40;
+    string effortLabel = "Medium";
+    string riskLabel = "Low";
+    string recommendedPath = "";
+
+    // Version order map
+    Dictionary<string, int> versionOrder = new()
+    {
+        [".NET Framework 4.5"] = 1,
+        [".NET Framework 4.6"] = 2,
+        [".NET Framework 4.7"] = 3,
+        [".NET Framework 4.8"] = 4,
+        [".NET Core 3.1"] = 5,
+        [".NET 5"] = 6,
+        [".NET 6"] = 7,
+        [".NET 7"] = 8,
+        [".NET 8"] = 9,
+        [".NET 9"] = 10
+    };
+
+    void CheckCompat()
+    {
+        showCompat = true;
+        recommendedPath = "";
+
+        int fromIdx = versionOrder.ContainsKey(fromVersion) ? versionOrder[fromVersion] : 0;
+        int toIdx = versionOrder.ContainsKey(toVersion) ? versionOrder[toVersion] : 0;
+        versionGap = Math.Abs(toIdx - fromIdx);
+        gapPct = Math.Min(versionGap * 15, 100);
+
+        // Same version
+        if (fromVersion == toVersion)
+        {
+            compatClass = "error";
+            compatIcon = "🚫";
+            compatTitle = "Cannot Migrate to Same Version";
+            compatMsg = "Source and target versions are identical. Please select a different target.";
+            effortPct = 0; riskPct = 0;
+            effortLabel = "None"; riskLabel = "None";
+            return;
+        }
+
+        // Downgrade
+        if (toIdx < fromIdx)
+        {
+            compatClass = "error";
+            compatIcon = "🚫";
+            compatTitle = "Downgrade Not Supported";
+            compatMsg = "Migrating to an older version is not supported. Please select a newer target version.";
+            effortPct = 0; riskPct = 100;
+            effortLabel = "N/A"; riskLabel = "High";
+            return;
+        }
+
+        // Smooth - 1 version gap
+        if (versionGap == 1)
+        {
+            compatClass = "success";
+            compatIcon = "✅";
+            compatTitle = "Smooth Migration — Minimal Changes";
+            compatMsg = $"Direct upgrade from {fromVersion} to {toVersion}. Low effort, minimal breaking changes expected.";
+            effortPct = 20; riskPct = 10;
+            effortLabel = "Low"; riskLabel = "Low";
+            return;
+        }
+
+        // Medium - 2-3 version gap
+        if (versionGap <= 3)
+        {
+            compatClass = "warning";
+            compatIcon = "⚠️";
+            compatTitle = "Compatible with Breaking Changes";
+            compatMsg = $"Migration from {fromVersion} to {toVersion} is possible. Some breaking changes and manual fixes required.";
+            effortPct = 60; riskPct = 40;
+            effortLabel = "Medium"; riskLabel = "Low";
+            return;
+        }
+
+        // Complex - 4+ version gap
+        compatClass = "error";
+        compatIcon = "🔴";
+        compatTitle = "Complex Migration — High Effort";
+        compatMsg = $"Large version gap detected ({versionGap} versions). Significant breaking changes and rewrites expected.";
+        effortPct = 90; riskPct = 80;
+        effortLabel = "High"; riskLabel = "High";
+        recommendedPath = $"💡 Recommended: Migrate step by step — {fromVersion} → .NET 6 → .NET 8 → {toVersion}";
+    }
+
+    string currentDetail = string.Empty;
+    Dictionary<string, string> migratedFiles = new();
+    Dictionary<string, string> dependencyMap = new();
+    string validationOutput = string.Empty;
+
+    void OpenDetail(string detail) => currentDetail = detail;
+    void OpenMigrationSummary() => currentDetail = "migration-summary";
+    void OpenConvertedCode() => currentDetail = "converted-code";
+    void OpenDependencyMap() => currentDetail = "dependency-map";
+    void OpenManualFix() => currentDetail = "manual-fix";
+    void OpenValidationReport() => currentDetail = "validation-report";
+    void OpenChangeLog() => currentDetail = "change-log";
+    void CloseDetail() => currentDetail = string.Empty;
+
+    string GetDetailTitle() => currentDetail switch
+    {
+        "migration-summary" => "📄 Migration Summary",
+        "converted-code"   => "💻 Converted Code",
+        "dependency-map"   => "📦 Dependency Map",
+        "manual-fix"       => "⚠️ Manual Fix List",
+        "validation-report"=> "✅ Validation Report",
+        "change-log"       => "📝 Change Log",
+        _ => string.Empty
+    };
+
+    string uploadTab = "local";
+    string githubUrl = string.Empty;
+    bool isFetchingGithub = false;
+    string githubFetchStatus = string.Empty;
+    bool githubFetchSuccess = false;
+
+    bool isDrag = false;
+    List<UploadedFile> files = new();
+    List<IBrowserFile> browserFiles = new();
+    bool isLoading = false;
+    string terminalOutput = string.Empty;
+    string statusMessage = string.Empty;
+    string analysisSummary = string.Empty;
+    string validationSummary = string.Empty;
+    string reportSummary = string.Empty;
+    int migratedCount = 0;
+    List<string> findingsCritical = new();
+    List<string> findingsWarnings = new();
+    List<string> findingsInfo = new();
+
+    bool isFullMigration = false;
+    Dictionary<string, bool> scopes = new()
+    {
+        ["Controllers"] = false,
+        ["Services"] = false,
+        ["Config"] = false,
+        ["NuGet"] = false,
+        ["SQL"] = false,
+        ["WebForms"] = false
+    };
+
+    Dictionary<string, string> scopeIcons = new()
+    {
+        ["Controllers"] = "🎮",
+        ["Services"] = "⚡",
+        ["Config"] = "⚙️",
+        ["NuGet"] = "📦",
+        ["SQL"] = "🗄️",
+        ["WebForms"] = "🌐"
+    };
+
+    bool showAdvanced = false;
+    string langTarget = "C# 12";
+    string outputFmt = "Web API + Services";
+    string execStyle = "Autonomous with review gates";
+
+    bool showNotConnected = false;
+
+    int currentStep = 0;
+    List<string> stepStates = new() { "pending", "pending", "pending", "pending", "pending" };
+    List<string> stepSubtitles = new() { "Waiting", "Waiting", "Waiting", "Waiting", "Waiting" };
+    string executionStatusText = "Waiting for migration to start";
+
+    List<string> actionStates = new() { "pending", "pending", "pending", "pending", "pending", "pending" };
+    Dictionary<string, bool> outputsReady = new()
+    {
+        ["Migration Summary"] = false,
+        ["Converted Code"] = false,
+        ["Dependency Map"] = false,
+        ["Manual Fix List"] = false,
+        ["Validation Report"] = false,
+        ["Change Log"] = false
+    };
+    bool reviewGateReady = false;
+    string reviewGateMessage = "Waiting for Migration to Complete";
+
+    List<StepItem> steps = new()
+    {
+        new(1, "Ingest"),
+        new(2, "Analyze"),
+        new(3, "Transform"),
+        new(4, "Validate"),
+        new(5, "Package")
+    };
+
+    List<string> autonomousActions = new()
+    {
+        "Scan uploaded solution and classify projects",
+        "Detect framework, language, UI type, and dependencies",
+        "Generate target project skeleton in .NET 8",
+        "Convert controllers, services, models, repositories",
+        "Suggest replacements for unsupported APIs / libraries",
+        "Produce build-ready output and manual remediation notes"
+    };
+
+    void ToggleScope(string key)
+    {
+        if (isFullMigration)
+        {
+            isFullMigration = false;
+            foreach (var k in scopes.Keys.ToList()) scopes[k] = false;
+        }
+        scopes[key] = !scopes[key];
+    }
+
+    void ToggleFullMigration()
+    {
+        isFullMigration = !isFullMigration;
+        foreach (var k in scopes.Keys.ToList())
+            scopes[k] = isFullMigration;
+    }
+
+    async Task OpenFilePicker()
+    {
+        await JS.InvokeVoidAsync("eval", "document.getElementById('fileInput').click()");
+    }
+
+    async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        foreach (var f in e.GetMultipleFiles(50))
+        {
+            if (!files.Any(x => x.Name == f.Name))
+            {
+                files.Add(new UploadedFile(f.Name, f.Size));
+                browserFiles.Add(f);
+            }
+        }
+        await Task.CompletedTask;
+    }
+
+    void HandleDrop() => isDrag = false;
+
+    async Task<bool> UploadFilesAsync()
+    {
+        // GitHub tab — repo already fetched and extracted on backend, skip upload
+        if (uploadTab == "github" && githubFetchSuccess)
+        {
+            terminalOutput += "Using GitHub repository already fetched.\n";
+            return true;
+        }
+
+        if (!browserFiles.Any())
+            return false;
+
+        using var content = new MultipartFormDataContent();
+        foreach (var file in browserFiles)
+        {
+            var stream = file.OpenReadStream(maxAllowedSize: 1024 * 1024 * 100);
+            content.Add(new StreamContent(stream), "files", file.Name);
+        }
+
+        var httpClient = HttpClientFactory.CreateClient("MigrationAgentAPI");
+        var response = await httpClient.PostAsync("/api/files/upload", content);
+        if (!response.IsSuccessStatusCode)
+        {
+            terminalOutput += $"Upload failed: {response.StatusCode} - {response.ReasonPhrase}\n";
+            return false;
+        }
+
+        terminalOutput += "Files uploaded successfully.\n";
+        return true;
+    }
+
+    async Task RunMigration()
+    {
+        if (files.Count == 0)
+            return;
+
+        isLoading = true;
+        showNotConnected = false;
+        statusMessage = "Uploading files...";
+        terminalOutput = string.Empty;
+        analysisSummary = string.Empty;
+        validationSummary = string.Empty;
+        reportSummary = string.Empty;
+        migratedCount = 0;
+        findingsCritical.Clear();
+        findingsWarnings.Clear();
+        findingsInfo.Clear();
+        ResetExecutionState();
+
+        if (!await UploadFilesAsync())
+        {
+            isLoading = false;
+            return;
+        }
+        SetStep(1, "Upload completed");
+        SetActionStage(1);
+
+        var request = new { from_version = fromVersion, to_version = toVersion };
+
+        try
+        {
+            statusMessage = "Analyzing code...";
+            SetStep(2, "Analyzing code");
+            SetActionStage(2);
+            var httpClient = HttpClientFactory.CreateClient("MigrationAgentAPI");
+            var analysisResp = await httpClient.PostAsJsonAsync("/api/migration/analyze", request);
+            terminalOutput += $"Analysis status: {analysisResp.StatusCode}\n";
+            StateHasChanged();
+            if (analysisResp.IsSuccessStatusCode)
+            {
+                var analysisJson = await analysisResp.Content.ReadFromJsonAsync<Dictionary<string, object>>();
+                if (analysisJson != null)
+                {
+                    analysisJson.TryGetValue("success", out var analysisSuccess);
+                    analysisJson.TryGetValue("error", out var analysisError);
+                    analysisJson.TryGetValue("analysis", out var analysisResponse);
+                    analysisSummary = analysisResponse?.ToString() ?? analysisError?.ToString() ?? string.Empty;
+                    if (analysisSuccess is bool aok && aok)
+                    {
+                        terminalOutput += $"✅ Analysis completed successfully.\n";
+                        terminalOutput += $"📊 Files analyzed. Complexity and breaking changes identified.\n";
+                        findingsInfo.Add("Analysis completed.");
+                        statusMessage = "Analysis completed.";
+                        StateHasChanged();
+                    }
+                }
+            }
+
+            statusMessage = "Starting migration...";
+            SetStep(3, "Transforming code");
+            SetActionStage(3);
+            var migrateResp = await httpClient.PostAsJsonAsync("/api/migration/migrate", request);
+            terminalOutput += $"Migration started: {migrateResp.StatusCode}\n";
+            StateHasChanged();
+            if (migrateResp.IsSuccessStatusCode)
+            {
+                var migrateJson = await migrateResp.Content.ReadFromJsonAsync<Dictionary<string, object>>();
+                if (migrateJson != null)
+                {
+                    migrateJson.TryGetValue("job_id", out var jobIdObj);
+                    var jobIdStr = jobIdObj?.ToString();
+                    if (!string.IsNullOrEmpty(jobIdStr))
+                    {
+                        terminalOutput += $"Migration job started with ID: {jobIdStr}\n";
+                        
+                        // Poll for migration status
+                        var migrationSucceeded = await PollMigrationStatus(jobIdStr, httpClient);
+                        if (!migrationSucceeded)
+                        {
+                            statusMessage = "Migration failed or timed out.";
+                            isLoading = false;
+                            return;
+                        }
+                        SetStep(3, "Transformation completed");
+                        UpdateOutputStates(migrationDone: true);
+                    }
+                    else
+                    {
+                        terminalOutput += "Failed to get migration job ID.\n";
+                        findingsCritical.Add("Migration failed: No job ID received.");
+                    }
+                }
+            }
+
+            statusMessage = "Validating output...";
+            SetStep(4, "Validating output");
+            SetActionStage(4);
+            var validateResp = await httpClient.PostAsJsonAsync("/api/migration/validate", new {});
+                    terminalOutput += $"Validation status: {validateResp.StatusCode}\n";
+                    StateHasChanged();
+            if (validateResp.IsSuccessStatusCode)
+            {
+                var validateJson = await validateResp.Content.ReadFromJsonAsync<Dictionary<string, object>>();
+                if (validateJson != null)
+                {
+                    validateJson.TryGetValue("success", out var validateSuccess);
+                    validateJson.TryGetValue("error", out var validationError);
+                    validateJson.TryGetValue("errors", out var validationErrors);
+                    validateJson.TryGetValue("output", out var validationOut);
+                    validationOutput = validationOut?.ToString() ?? validationError?.ToString() ?? string.Empty;
+                    if (validateSuccess is bool vok && vok)
+                    {
+                        validationSummary = "Validation succeeded.";
+                        terminalOutput += "✅ Validation completed successfully.\n";
+                        StateHasChanged();
+                        findingsInfo.Add("Validation passed.");
+                        UpdateOutputStates(migrationDone: true, validationDone: true);
+                        reviewGateReady = true;
+                        reviewGateMessage = "Review Gate ready";
+                        statusMessage = "Validation completed.";
+                        SetActionStage(4);
+                    }
+                    else
+                    {
+                        validationSummary = validationError?.ToString() ?? validationErrors?.ToString() ?? "Validation failed.";
+                        findingsCritical.Add(validationSummary);
+                        terminalOutput += "❌ Validation failed.\n";
+                        StateHasChanged();
+                    }
+                }
+            }
+
+            statusMessage = "Generating report...";
+            SetStep(5, "Packaging output");
+            SetActionStage(5);
+            UpdateOutputStates(migrationDone: true, validationDone: true);
+            var reportResp = await httpClient.GetAsync("/api/migration/report");
+                terminalOutput += $"Report status: {reportResp.StatusCode}\n";
+                StateHasChanged();
+            if (reportResp.IsSuccessStatusCode)
+            {
+                var reportJson = await reportResp.Content.ReadFromJsonAsync<Dictionary<string, object>>();
+                if (reportJson != null)
+                {
+                    reportJson.TryGetValue("summary", out var summary);
+                    reportSummary = summary?.ToString() ?? string.Empty;
+                    reportJson.TryGetValue("recommendations", out var recommendations);
+                    if (recommendations is JsonElement recElement && recElement.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var item in recElement.EnumerateArray())
+                        {
+                            if (item.ValueKind == JsonValueKind.String)
+                                findingsInfo.Add(item.GetString() ?? string.Empty);
+                        }
+                    }
+                }
+                terminalOutput += "✅ Report generated successfully.\n";
+                StateHasChanged();
+                UpdateOutputStates(migrationDone: true, validationDone: true, reportDone: true);
+                reviewGateReady = true;
+                reviewGateMessage = "Review Gate ready";
+                statusMessage = "Report generated.";
+                SetActionStage(6);
+            }
+        }
+        catch (Exception ex)
+        {
+            terminalOutput += $"Error: {ex.Message}\n";
+            showNotConnected = true;
+            statusMessage = "Backend request failed.";
+        }
+        finally
+        {
+            isLoading = false;
+            if (string.IsNullOrEmpty(statusMessage))
+                statusMessage = "Migration flow complete.";
+            else
+                executionStatusText = statusMessage;
+        }
+    }
+
+    void RemoveFile(UploadedFile file)
+    {
+        files.Remove(file);
+        var browserFile = browserFiles.FirstOrDefault(x => x.Name == file.Name);
+        if (browserFile != null)
+            browserFiles.Remove(browserFile);
+    }
+
+    void SetTabLocal() => uploadTab = "local";
+    void SetTabGithub() => uploadTab = "github";
+
+    async Task FetchGithubRepo()
+    {
+        if (string.IsNullOrWhiteSpace(githubUrl)) return;
+        isFetchingGithub = true;
+        githubFetchStatus = string.Empty;
+        githubFetchSuccess = false;
+        StateHasChanged();
+        try
+        {
+            var httpClient = HttpClientFactory.CreateClient("MigrationAgentAPI");
+            var resp = await httpClient.PostAsJsonAsync("/api/files/upload-github", new { url = githubUrl });
+            if (resp.IsSuccessStatusCode)
+            {
+                var json = await resp.Content.ReadFromJsonAsync<Dictionary<string, object>>();
+                if (json != null)
+                {
+                    json.TryGetValue("repo", out var repo);
+                    json.TryGetValue("cs_files", out var csFiles);
+                    githubFetchStatus = $"Fetched {repo} — {csFiles} C# files ready";
+                    githubFetchSuccess = true;
+                    // Add a dummy entry so Run Migration button enables
+                    files.Clear();
+                    files.Add(new UploadedFile(repo?.ToString() ?? "github-repo", 0));
+                }
+            }
+            else
+            {
+                var err = await resp.Content.ReadAsStringAsync();
+                githubFetchStatus = $"Failed: {resp.StatusCode}";
+                githubFetchSuccess = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            githubFetchStatus = $"Error: {ex.Message}";
+            githubFetchSuccess = false;
+        }
+        finally
+        {
+            isFetchingGithub = false;
+        }
+    }
+
+    string GetFileIcon(string name)
+    {
+        if (name.EndsWith(".sln")) return "🗂️";
+        if (name.EndsWith(".csproj")) return "📋";
+        if (name.EndsWith(".cs")) return "📄";
+        if (name.EndsWith(".zip")) return "🗜️";
+        if (!name.Contains(".")) return "📁";
+        return "📄";
+    }
+
+    string FormatSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024} KB";
+        return $"{bytes / (1024 * 1024)} MB";
+    }
+
+    void ResetExecutionState()
+    {
+        currentStep = 0;
+        executionStatusText = "Waiting for migration to start";
+        stepStates = new() { "pending", "pending", "pending", "pending", "pending" };
+        stepSubtitles = new() { "Waiting", "Waiting", "Waiting", "Waiting", "Waiting" };
+        actionStates = new() { "pending", "pending", "pending", "pending", "pending", "pending" };
+        outputsReady = new()
+        {
+            ["Migration Summary"] = false,
+            ["Converted Code"] = false,
+            ["Dependency Map"] = false,
+            ["Manual Fix List"] = false,
+            ["Validation Report"] = false,
+            ["Change Log"] = false
+        };
+        reviewGateReady = false;
+        reviewGateMessage = "Waiting for Migration to Complete";
+    }
+
+    string GetStepperProgressWidth()
+    {
+        int completed = stepStates.Count(s => s == "completed");
+        int active = stepStates.Any(s => s == "active") ? 1 : 0;
+        // Each step gap is 25% (4 gaps for 5 steps)
+        double pct = (completed + active * 0.5) * 25.0;
+        pct = Math.Min(pct, 100);
+        // Convert to actual pixel calc — stepper line goes from left:40px to right:40px
+        return $"calc((100% - 80px) * {pct / 100.0:F2})";
+    }
+
+    void SetStep(int step, string subtitle)
+    {
+        for (int i = 0; i < stepStates.Count; i++)
+        {
+            stepStates[i] = i < step - 1 ? "completed" : "pending";
+            stepSubtitles[i] = i < step - 1 ? "Done" : "Waiting";
+        }
+        if (step >= 1 && step <= stepStates.Count)
+        {
+            stepStates[step - 1] = "active";
+            stepSubtitles[step - 1] = subtitle;
+        }
+        currentStep = step;
+        executionStatusText = subtitle;
+        StateHasChanged();
+    }
+
+    void SetActionStage(int step)
+    {
+        for (int i = 0; i < actionStates.Count; i++)
+        {
+            actionStates[i] = "pending";
+        }
+        if (step == 1)
+        {
+            actionStates[0] = "active";
+        }
+        else if (step == 2)
+        {
+            actionStates[0] = "completed";
+            actionStates[1] = "active";
+        }
+        else if (step == 3)
+        {
+            actionStates[0] = "completed";
+            actionStates[1] = "completed";
+            actionStates[2] = "active";
+        }
+        else if (step == 4)
+        {
+            actionStates[0] = "completed";
+            actionStates[1] = "completed";
+            actionStates[2] = "completed";
+            actionStates[3] = "active";
+        }
+        else if (step == 5)
+        {
+            actionStates[0] = "completed";
+            actionStates[1] = "completed";
+            actionStates[2] = "completed";
+            actionStates[3] = "completed";
+            actionStates[4] = "active";
+        }
+        else if (step >= 6)
+        {
+            for (int i = 0; i < actionStates.Count; i++)
+                actionStates[i] = "completed";
+        }
+    }
+
+    string GetActionIcon(int index)
+    {
+        return actionStates[index] switch
+        {
+            "completed" => "✅",
+            "active" => "⏳",
+            _ => "⏸️",
+        };
+    }
+
+    void UpdateOutputStates(bool migrationDone = false, bool validationDone = false, bool reportDone = false)
+    {
+        outputsReady["Migration Summary"] = migrationDone;
+        outputsReady["Converted Code"] = migrationDone;
+        outputsReady["Dependency Map"] = migrationDone;
+        outputsReady["Manual Fix List"] = validationDone || migrationDone;
+        outputsReady["Validation Report"] = validationDone;
+        outputsReady["Change Log"] = reportDone;
+    }
+
+    async Task DownloadMigratedProject()
+    {
+        try
+        {
+            var httpClient = HttpClientFactory.CreateClient("MigrationAgentAPI");
+            var response = await httpClient.GetAsync("/api/files/download");
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsByteArrayAsync();
+                var blob = new byte[content.Length];
+                Array.Copy(content, blob, content.Length);
+                await JS.InvokeVoidAsync("downloadBlob", blob, "migrated_project.zip");
+            }
+            else
+            {
+                terminalOutput += "Download failed: No migrated project available.\n";
+            }
+        }
+        catch (Exception ex)
+        {
+            terminalOutput += $"Download error: {ex.Message}\n";
+        }
+    }
+
+    private async Task<bool> PollMigrationStatus(string jobId, HttpClient httpClient)
+    {
+        int maxPolls = 1200; // 20 minutes max
+        int pollCount = 0;
+        string previousProgress = string.Empty;
+        string previousStatus = string.Empty;
+        
+        while (pollCount < maxPolls)
+        {
+            try
+            {
+                var statusResp = await httpClient.GetAsync($"/api/migration/status/{jobId}");
+                if (statusResp.IsSuccessStatusCode)
+                {
+                    var statusJson = await statusResp.Content.ReadFromJsonAsync<Dictionary<string, object>>();
+                    if (statusJson != null)
+                    {
+                        statusJson.TryGetValue("stage", out var stage);
+                        statusJson.TryGetValue("step", out var stepVal);
+                        statusJson.TryGetValue("status", out var status);
+                        statusJson.TryGetValue("progress", out var progress);
+                        statusJson.TryGetValue("result", out var result);
+                        statusJson.TryGetValue("error", out var error);
+                        string statusStr = status?.ToString() ?? "unknown";
+                        string progressStr = progress?.ToString() ?? "";
+                        var stageStr = stage?.ToString() ?? string.Empty;
+                        if (stageStr == "migrating")
+                        {
+                            SetStep(3, !string.IsNullOrEmpty(progressStr) ? progressStr : "Migrating...");
+                            SetActionStage(3);
+                            if (!string.IsNullOrEmpty(progressStr) && progressStr.Contains("Migrating"))
+                            {
+                                SetActionStage(4);
+                            }
+                        }
+                        else if (stageStr == "completed")
+                        {
+                            SetStep(3, "Transformation completed");
+                            UpdateOutputStates(migrationDone: true);
+                            SetActionStage(5);
+                        }
+                        
+                        statusMessage = $"Migration: {progressStr}";
+                        if (statusStr != previousStatus || progressStr != previousProgress)
+                        {
+                            terminalOutput += $"⏳ {progressStr}\n";
+                            previousStatus = statusStr;
+                            previousProgress = progressStr;
+                            StateHasChanged();
+                        }
+                        
+                        if (statusStr == "completed")
+                        {
+                            if (result is JsonElement resultElement && resultElement.ValueKind == JsonValueKind.Object)
+                            {
+                                resultElement.TryGetProperty("count", out var countElement);
+                                if (countElement.ValueKind == JsonValueKind.Number)
+                                    migratedCount = countElement.GetInt32();
+                                // Store migrated files for detail view
+                                if (resultElement.TryGetProperty("migrated", out var migratedEl) && migratedEl.ValueKind == JsonValueKind.Object)
+                                {
+                                    migratedFiles.Clear();
+                                    dependencyMap.Clear();
+                                    foreach (var prop in migratedEl.EnumerateObject())
+                                    {
+                                        migratedFiles[prop.Name] = prop.Value.GetString() ?? string.Empty;
+                                        if (prop.Name.EndsWith(".csproj"))
+                                        {
+                                            var val = prop.Value.GetString() ?? string.Empty;
+                                            if (val.Contains("PackageReference"))
+                                            {
+                                                var matches = System.Text.RegularExpressions.Regex.Matches(val, @"Include=""([^""]+)"" Version=""([^""]+)""");
+                                                foreach (System.Text.RegularExpressions.Match m in matches)
+                                                    dependencyMap[m.Groups[1].Value] = m.Groups[2].Value;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            terminalOutput += "✅ Migration completed successfully.\n";
+                            findingsInfo.Add($"Migrated {migratedCount} files.");
+                            SetActionStage(5);
+                            StateHasChanged();
+                            return true;
+                        }
+                        else if (statusStr == "failed")
+                        {
+                            string errorStr = error?.ToString() ?? "Unknown error";
+                            terminalOutput += $"❌ Migration failed: {errorStr}\n";
+                            findingsCritical.Add($"Migration failed: {errorStr}");
+                            StateHasChanged();
+                            return false;
+                        }
+                    }
+                }
+                else
+                {
+                    terminalOutput += $"Failed to get migration status: {statusResp.StatusCode}\n";
+                }
+            }
+            catch (Exception ex)
+            {
+                terminalOutput += $"Error polling migration status: {ex.Message}\n";
+            }
+            
+            await Task.Delay(1000); // Wait 1 second before polling again
+            pollCount++;
+        }
+        
+        if (pollCount >= maxPolls)
+        {
+            terminalOutput += "Migration timed out after 10 minutes.\n";
+            findingsCritical.Add("Migration timed out.");
+            statusMessage = "Migration timed out.";
+            return false;
+        }
+        return false;
+    }
+
+    record UploadedFile(string Name, long Size);
+    record StepItem(int N, string Name);
+}
+
+<script>
+    window.downloadBlob = (blob, filename) => {
+        const url = URL.createObjectURL(new Blob([blob]));
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+</script>

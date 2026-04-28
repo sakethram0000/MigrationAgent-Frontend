@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="..\build\MigrationAgent.UI.props" />
+</Project>

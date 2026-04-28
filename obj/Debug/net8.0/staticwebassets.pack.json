@@ -1,0 +1,41 @@
+{
+  "Files": [
+    {
+      "Id": "C:\\Migration Agent\\src\\MigrationAgent.UI\\obj\\Debug\\net8.0\\scopedcss\\projectbundle\\MigrationAgent.UI.bundle.scp.css",
+      "PackagePath": "staticwebassets\\MigrationAgent.UI.bundle.scp.css"
+    },
+    {
+      "Id": "C:\\Migration Agent\\src\\MigrationAgent.UI\\wwwroot\\app.css",
+      "PackagePath": "staticwebassets\\app.css"
+    },
+    {
+      "Id": "C:\\Migration Agent\\src\\MigrationAgent.UI\\wwwroot\\bootstrap\\bootstrap.min.css",
+      "PackagePath": "staticwebassets\\bootstrap\\bootstrap.min.css"
+    },
+    {
+      "Id": "C:\\Migration Agent\\src\\MigrationAgent.UI\\wwwroot\\bootstrap\\bootstrap.min.css.map",
+      "PackagePath": "staticwebassets\\bootstrap\\bootstrap.min.css.map"
+    },
+    {
+      "Id": "C:\\Migration Agent\\src\\MigrationAgent.UI\\wwwroot\\favicon.png",
+      "PackagePath": "staticwebassets\\favicon.png"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.MigrationAgent.UI.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.build.MigrationAgent.UI.props",
+      "PackagePath": "build\\MigrationAgent.UI.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildMultiTargeting.MigrationAgent.UI.props",
+      "PackagePath": "buildMultiTargeting\\MigrationAgent.UI.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildTransitive.MigrationAgent.UI.props",
+      "PackagePath": "buildTransitive\\MigrationAgent.UI.props"
+    }
+  ],
+  "ElementsToRemove": []
+}
