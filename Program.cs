@@ -6,9 +6,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+// Read backend URL from appsettings based on environment
+var backendUrl = builder.Configuration["ApiSettings:BackendUrl"] ?? "http://localhost:8000";
+
 builder.Services.AddHttpClient("MigrationAgentAPI", client =>
 {
-    client.BaseAddress = new Uri("https://migrationagent-backend.onrender.com");
+    client.BaseAddress = new Uri(backendUrl);
     client.Timeout = TimeSpan.FromMinutes(30);
 });
 

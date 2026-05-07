@@ -27,3 +27,4 @@ c:\Migration Agent\src\MigrationAgent.UI\obj\Debug\net8.0\refint\MigrationAgent.
 c:\Migration Agent\src\MigrationAgent.UI\obj\Debug\net8.0\MigrationAgent.UI.pdb
 c:\Migration Agent\src\MigrationAgent.UI\obj\Debug\net8.0\MigrationAgent.UI.genruntimeconfig.cache
 c:\Migration Agent\src\MigrationAgent.UI\obj\Debug\net8.0\ref\MigrationAgent.UI.dll
+C:\Migration Agent\src\MigrationAgent.UI\obj\Debug\net8.0\MigrationAgent.UI.sourcelink.json

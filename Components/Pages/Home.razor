@@ -264,7 +264,7 @@
                 <div>
                     <div style="font-weight:700;font-size:14px;color:var(--orange);">Backend Not Connected</div>
                     <div style="font-size:13px;color:var(--text2);margin-top:4px;">
-                        Agent logic is not built yet. Connect the Python AutoGen backend to start real migrations.
+                        Could not reach the backend. Please ensure the API is running and try again.
                     </div>
                 </div>
             </div>
@@ -522,8 +522,8 @@
                 else if (currentDetail == "validation-report")
                 {
                     <div class="detail-section">
-                        <div class="detail-badge @(validationSummary.Contains("succeeded") ? "green" : "red")" style="margin-bottom:16px;display:inline-block;">
-                            @(validationSummary.Contains("succeeded") ? "✅ Build Passed" : "❌ Build Failed")
+                        <div class="detail-badge @(validationSummary == "Build succeeded." ? "green" : validationSummary == "Build skipped." ? "blue" : "red")" style="margin-bottom:16px;display:inline-block;">
+                            @(validationSummary == "Build succeeded." ? "✅ Build Passed" : validationSummary == "Build skipped." ? "⚠️ Validation Skipped — Run dotnet build locally" : "❌ Build Failed")
                         </div>
                         <pre class="detail-code">@validationOutput</pre>
                     </div>
@@ -932,13 +932,24 @@
                     validateJson.TryGetValue("error", out var validationError);
                     validateJson.TryGetValue("errors", out var validationErrors);
                     validateJson.TryGetValue("output", out var validationOut);
-                    validationOutput = validationOut?.ToString() ?? validationError?.ToString() ?? string.Empty;
-                    if (validateSuccess is bool vok && vok)
+                    var errorStr = validationError?.ToString() ?? string.Empty;
+                    validationOutput = validationOut?.ToString() ?? errorStr;
+
+                    // dotnet not installed — treat as skipped not failed
+                    if (errorStr.Contains("dotnet CLI not found"))
                     {
-                        validationSummary = "Validation succeeded.";
-                        terminalOutput += "✅ Validation completed successfully.\n";
-                        StateHasChanged();
-                        findingsInfo.Add("Validation passed.");
+                        validationSummary = "Build skipped.";
+                        terminalOutput += "⚠️ Validation skipped: dotnet not installed on server. Download and build locally.\n";
+                        findingsInfo.Add("Validation skipped — download project and run dotnet build locally.");
+                        UpdateOutputStates(migrationDone: true, validationDone: true);
+                        statusMessage = "Validation skipped.";
+                        SetActionStage(4);
+                    }
+                    else if (validateSuccess is bool vok && vok)
+                    {
+                        validationSummary = "Build succeeded.";
+                        terminalOutput += "✅ Validation completed — Build succeeded.\n";
+                        findingsInfo.Add("Validation passed — build succeeded.");
                         UpdateOutputStates(migrationDone: true, validationDone: true);
                         reviewGateReady = true;
                         reviewGateMessage = "Review Gate ready";
@@ -947,11 +958,12 @@
                     }
                     else
                     {
-                        validationSummary = validationError?.ToString() ?? validationErrors?.ToString() ?? "Validation failed.";
-                        findingsCritical.Add(validationSummary);
-                        terminalOutput += "❌ Validation failed.\n";
-                        StateHasChanged();
+                        validationSummary = "Build failed.";
+                        var errDetail = errorStr.Length > 0 ? errorStr : validationErrors?.ToString() ?? "Validation failed.";
+                        findingsCritical.Add(errDetail);
+                        terminalOutput += $"❌ Validation failed: {errDetail}\n";
                     }
+                    StateHasChanged();
                 }
             }
 
@@ -969,6 +981,8 @@
                 {
                     reportJson.TryGetValue("summary", out var summary);
                     reportSummary = summary?.ToString() ?? string.Empty;
+
+                    // Recommendations -> findingsInfo
                     reportJson.TryGetValue("recommendations", out var recommendations);
                     if (recommendations is JsonElement recElement && recElement.ValueKind == JsonValueKind.Array)
                     {
@@ -978,12 +992,46 @@
                                 findingsInfo.Add(item.GetString() ?? string.Empty);
                         }
                     }
+
+                    // Dependency map from report (fills gaps if polling missed any)
+                    reportJson.TryGetValue("dependency_map", out var depMapObj);
+                    if (depMapObj is JsonElement depMapEl && depMapEl.ValueKind == JsonValueKind.Object)
+                    {
+                        foreach (var prop in depMapEl.EnumerateObject())
+                        {
+                            if (!dependencyMap.ContainsKey(prop.Name))
+                                dependencyMap[prop.Name] = prop.Value.GetString() ?? string.Empty;
+                        }
+                    }
+
+                    // Manual fixes from report
+                    reportJson.TryGetValue("manual_fixes", out var manualFixesObj);
+                    if (manualFixesObj is JsonElement manualFixesEl && manualFixesEl.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var item in manualFixesEl.EnumerateArray())
+                        {
+                            var fixStr = item.GetString();
+                            if (!string.IsNullOrEmpty(fixStr) && !findingsWarnings.Contains(fixStr))
+                                findingsWarnings.Add(fixStr);
+                        }
+                    }
+
+                    // Issues -> findingsCritical
+                    reportJson.TryGetValue("issues", out var issuesObj);
+                    if (issuesObj is JsonElement issuesEl && issuesEl.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var item in issuesEl.EnumerateArray())
+                        {
+                            if (item.ValueKind == JsonValueKind.String)
+                                findingsCritical.Add(item.GetString() ?? string.Empty);
+                        }
+                    }
                 }
                 terminalOutput += "✅ Report generated successfully.\n";
                 StateHasChanged();
                 UpdateOutputStates(migrationDone: true, validationDone: true, reportDone: true);
                 reviewGateReady = true;
-                reviewGateMessage = "Review Gate ready";
+                reviewGateMessage = "Review Gate ready — Migration complete";
                 statusMessage = "Report generated.";
                 SetActionStage(6);
             }
@@ -1268,6 +1316,7 @@
                                 resultElement.TryGetProperty("count", out var countElement);
                                 if (countElement.ValueKind == JsonValueKind.Number)
                                     migratedCount = countElement.GetInt32();
+
                                 // Store migrated files for detail view
                                 if (resultElement.TryGetProperty("migrated", out var migratedEl) && migratedEl.ValueKind == JsonValueKind.Object)
                                 {
@@ -1286,6 +1335,17 @@
                                                     dependencyMap[m.Groups[1].Value] = m.Groups[2].Value;
                                             }
                                         }
+                                    }
+                                }
+
+                                // Store manual fixes from fixer agent
+                                if (resultElement.TryGetProperty("manual_fixes", out var manualFixesEl) && manualFixesEl.ValueKind == JsonValueKind.Array)
+                                {
+                                    foreach (var fix in manualFixesEl.EnumerateArray())
+                                    {
+                                        var fixStr = fix.GetString();
+                                        if (!string.IsNullOrEmpty(fixStr))
+                                            findingsWarnings.Add(fixStr);
                                     }
                                 }
                             }

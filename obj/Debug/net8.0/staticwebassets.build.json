@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "CNIEytELl2vY4Aivaxk7D7G+FUbU/ewYBlAaEHqyj5s=",
+  "Hash": "Gy0EdqjqMhFrXYGa4jr0M+e9iSSleNXmJJJsFT2JlMM=",
   "Source": "MigrationAgent.UI",
   "BasePath": "_content/MigrationAgent.UI",
   "Mode": "Default",
@@ -10,17 +10,17 @@
     {
       "Name": "MigrationAgent.UI\\wwwroot",
       "Source": "MigrationAgent.UI",
-      "ContentRoot": "C:\\Migration Agent\\src\\MigrationAgent.UI\\wwwroot\\",
+      "ContentRoot": "c:\\Migration Agent\\src\\MigrationAgent.UI\\wwwroot\\",
       "BasePath": "_content/MigrationAgent.UI",
       "Pattern": "**"
     }
   ],
   "Assets": [
     {
-      "Identity": "C:\\Migration Agent\\src\\MigrationAgent.UI\\obj\\Debug\\net8.0\\scopedcss\\bundle\\MigrationAgent.UI.styles.css",
+      "Identity": "c:\\Migration Agent\\src\\MigrationAgent.UI\\obj\\Debug\\net8.0\\scopedcss\\bundle\\MigrationAgent.UI.styles.css",
       "SourceId": "MigrationAgent.UI",
       "SourceType": "Computed",
-      "ContentRoot": "C:\\Migration Agent\\src\\MigrationAgent.UI\\obj\\Debug\\net8.0\\scopedcss\\bundle\\",
+      "ContentRoot": "c:\\Migration Agent\\src\\MigrationAgent.UI\\obj\\Debug\\net8.0\\scopedcss\\bundle\\",
       "BasePath": "_content/MigrationAgent.UI",
       "RelativePath": "MigrationAgent.UI.styles.css",
       "AssetKind": "All",
@@ -33,13 +33,13 @@
       "AssetTraitValue": "ApplicationBundle",
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
-      "OriginalItemSpec": "C:\\Migration Agent\\src\\MigrationAgent.UI\\obj\\Debug\\net8.0\\scopedcss\\bundle\\MigrationAgent.UI.styles.css"
+      "OriginalItemSpec": "c:\\Migration Agent\\src\\MigrationAgent.UI\\obj\\Debug\\net8.0\\scopedcss\\bundle\\MigrationAgent.UI.styles.css"
     },
     {
-      "Identity": "C:\\Migration Agent\\src\\MigrationAgent.UI\\obj\\Debug\\net8.0\\scopedcss\\projectbundle\\MigrationAgent.UI.bundle.scp.css",
+      "Identity": "c:\\Migration Agent\\src\\MigrationAgent.UI\\obj\\Debug\\net8.0\\scopedcss\\projectbundle\\MigrationAgent.UI.bundle.scp.css",
       "SourceId": "MigrationAgent.UI",
       "SourceType": "Computed",
-      "ContentRoot": "C:\\Migration Agent\\src\\MigrationAgent.UI\\obj\\Debug\\net8.0\\scopedcss\\projectbundle\\",
+      "ContentRoot": "c:\\Migration Agent\\src\\MigrationAgent.UI\\obj\\Debug\\net8.0\\scopedcss\\projectbundle\\",
       "BasePath": "_content/MigrationAgent.UI",
       "RelativePath": "MigrationAgent.UI.bundle.scp.css",
       "AssetKind": "All",
@@ -52,13 +52,13 @@
       "AssetTraitValue": "ProjectBundle",
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
-      "OriginalItemSpec": "C:\\Migration Agent\\src\\MigrationAgent.UI\\obj\\Debug\\net8.0\\scopedcss\\projectbundle\\MigrationAgent.UI.bundle.scp.css"
+      "OriginalItemSpec": "c:\\Migration Agent\\src\\MigrationAgent.UI\\obj\\Debug\\net8.0\\scopedcss\\projectbundle\\MigrationAgent.UI.bundle.scp.css"
     },
     {
-      "Identity": "C:\\Migration Agent\\src\\MigrationAgent.UI\\wwwroot\\app.css",
+      "Identity": "c:\\Migration Agent\\src\\MigrationAgent.UI\\wwwroot\\app.css",
       "SourceId": "MigrationAgent.UI",
       "SourceType": "Discovered",
-      "ContentRoot": "C:\\Migration Agent\\src\\MigrationAgent.UI\\wwwroot\\",
+      "ContentRoot": "c:\\Migration Agent\\src\\MigrationAgent.UI\\wwwroot\\",
       "BasePath": "_content/MigrationAgent.UI",
       "RelativePath": "app.css",
       "AssetKind": "All",
@@ -74,10 +74,10 @@
       "OriginalItemSpec": "wwwroot\\app.css"
     },
     {
-      "Identity": "C:\\Migration Agent\\src\\MigrationAgent.UI\\wwwroot\\bootstrap\\bootstrap.min.css",
+      "Identity": "c:\\Migration Agent\\src\\MigrationAgent.UI\\wwwroot\\bootstrap\\bootstrap.min.css",
       "SourceId": "MigrationAgent.UI",
       "SourceType": "Discovered",
-      "ContentRoot": "C:\\Migration Agent\\src\\MigrationAgent.UI\\wwwroot\\",
+      "ContentRoot": "c:\\Migration Agent\\src\\MigrationAgent.UI\\wwwroot\\",
       "BasePath": "_content/MigrationAgent.UI",
       "RelativePath": "bootstrap/bootstrap.min.css",
       "AssetKind": "All",
@@ -93,10 +93,10 @@
       "OriginalItemSpec": "wwwroot\\bootstrap\\bootstrap.min.css"
     },
     {
-      "Identity": "C:\\Migration Agent\\src\\MigrationAgent.UI\\wwwroot\\bootstrap\\bootstrap.min.css.map",
+      "Identity": "c:\\Migration Agent\\src\\MigrationAgent.UI\\wwwroot\\bootstrap\\bootstrap.min.css.map",
       "SourceId": "MigrationAgent.UI",
       "SourceType": "Discovered",
-      "ContentRoot": "C:\\Migration Agent\\src\\MigrationAgent.UI\\wwwroot\\",
+      "ContentRoot": "c:\\Migration Agent\\src\\MigrationAgent.UI\\wwwroot\\",
       "BasePath": "_content/MigrationAgent.UI",
       "RelativePath": "bootstrap/bootstrap.min.css.map",
       "AssetKind": "All",
@@ -112,10 +112,10 @@
       "OriginalItemSpec": "wwwroot\\bootstrap\\bootstrap.min.css.map"
     },
     {
-      "Identity": "C:\\Migration Agent\\src\\MigrationAgent.UI\\wwwroot\\favicon.png",
+      "Identity": "c:\\Migration Agent\\src\\MigrationAgent.UI\\wwwroot\\favicon.png",
       "SourceId": "MigrationAgent.UI",
       "SourceType": "Discovered",
-      "ContentRoot": "C:\\Migration Agent\\src\\MigrationAgent.UI\\wwwroot\\",
+      "ContentRoot": "c:\\Migration Agent\\src\\MigrationAgent.UI\\wwwroot\\",
       "BasePath": "_content/MigrationAgent.UI",
       "RelativePath": "favicon.png",
       "AssetKind": "All",

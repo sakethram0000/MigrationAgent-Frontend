@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Migration Agent\\src\\MigrationAgent.UI\\MigrationAgent.UI.csproj": {}
+    "c:\\Migration Agent\\src\\MigrationAgent.UI\\MigrationAgent.UI.csproj": {}
   },
   "projects": {
-    "C:\\Migration Agent\\src\\MigrationAgent.UI\\MigrationAgent.UI.csproj": {
+    "c:\\Migration Agent\\src\\MigrationAgent.UI\\MigrationAgent.UI.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Migration Agent\\src\\MigrationAgent.UI\\MigrationAgent.UI.csproj",
+        "projectUniqueName": "c:\\Migration Agent\\src\\MigrationAgent.UI\\MigrationAgent.UI.csproj",
         "projectName": "MigrationAgent.UI",
-        "projectPath": "C:\\Migration Agent\\src\\MigrationAgent.UI\\MigrationAgent.UI.csproj",
+        "projectPath": "c:\\Migration Agent\\src\\MigrationAgent.UI\\MigrationAgent.UI.csproj",
         "packagesPath": "C:\\Users\\SakethRamRagi\\.nuget\\packages\\",
-        "outputPath": "C:\\Migration Agent\\src\\MigrationAgent.UI\\obj\\",
+        "outputPath": "c:\\Migration Agent\\src\\MigrationAgent.UI\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\SakethRamRagi\\AppData\\Roaming\\NuGet\\NuGet.Config"
