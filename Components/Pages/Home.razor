@@ -1358,8 +1358,20 @@
                         else if (statusStr == "failed")
                         {
                             string errorStr = error?.ToString() ?? "Unknown error";
-                            terminalOutput += $"❌ Migration failed: {errorStr}\n";
-                            findingsCritical.Add($"Migration failed: {errorStr}");
+                            // Friendly message for rate limit errors
+                            if (errorStr.Contains("429") || errorStr.Contains("rate_limit") || errorStr.Contains("Rate limit"))
+                            {
+                                terminalOutput += $"❌ Rate limit reached on Groq API.\n";
+                                terminalOutput += $"⏳ Please wait 30-60 seconds and try again.\n";
+                                terminalOutput += $"💡 Tip: Groq free tier has token limits. Try a smaller project or wait a minute.\n";
+                                findingsCritical.Add("⚠️ Rate limit reached — wait 30-60 seconds and click Run Migration again.");
+                                statusMessage = "Rate limit reached. Please wait and retry.";
+                            }
+                            else
+                            {
+                                terminalOutput += $"❌ Migration failed: {errorStr}\n";
+                                findingsCritical.Add($"Migration failed: {errorStr}");
+                            }
                             StateHasChanged();
                             return false;
                         }

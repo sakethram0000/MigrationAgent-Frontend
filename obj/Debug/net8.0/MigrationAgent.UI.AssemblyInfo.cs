@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MigrationAgent.UI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d6ced8102653a66dc8e48e7d642231e3a81fbe9f")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2632e87fa34a8e2683eec8ff22498c4b3bf80132")]
 [assembly: System.Reflection.AssemblyProductAttribute("MigrationAgent.UI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MigrationAgent.UI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
